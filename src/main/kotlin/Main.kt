@@ -1,9 +1,10 @@
-import com.kittensbox.plugins.configureRouting
-import com.kittensbox.plugins.configureSerialization
-import com.kittensbox.plugins.configureSockets
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import plugins.configureMqttClient
+
+private const val HOST = "0.0.0.0"
+private const val PORT = 8080
 
 fun main() {
     embeddedServer(
@@ -16,7 +17,6 @@ fun main() {
 }
 
 private fun Application.module() {
-    configureSockets()
-    configureSerialization()
-    configureRouting()
+//    configureSockets()
+    configureMqttClient()
 }

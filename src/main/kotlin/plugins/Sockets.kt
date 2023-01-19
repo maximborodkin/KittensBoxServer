@@ -1,4 +1,4 @@
-package com.kittensbox.plugins
+package plugins
 
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
