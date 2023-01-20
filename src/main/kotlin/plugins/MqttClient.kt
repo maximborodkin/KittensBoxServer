@@ -1,29 +1,39 @@
 package plugins
 
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
-import org.eclipse.paho.client.mqttv3.MqttCallback
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.eclipse.paho.client.mqttv3.MqttMessage
+import Configuration
+import model.QOS
+import model.rest.Topic
+import org.eclipse.paho.client.mqttv3.*
 
-fun configureMqttClient() {
-    val mqttServerAddress = "tcp://127.0.0.1:1883"
-    val client = MqttClient(mqttServerAddress, "KittensBoxServer")
-    client.setCallback(object : MqttCallback {
-        override fun connectionLost(cause: Throwable?) {
-            println("connectionLost ${cause?.message}")
-        }
+class MqttClient {
+    private val client = MqttClient(Configuration.mqttServerAddress, Configuration.clientName)
 
-        override fun messageArrived(topic: String?, message: MqttMessage?) {
-            println("messageArrived topic: $topic, message: ${message?.payload?.count()}")
-        }
+    init {
+        connect()
+    }
 
-        override fun deliveryComplete(token: IMqttDeliveryToken?) {
-            println("deliveryComplete $token")
+    internal fun subscribe(topic: Topic, callback: (String) -> Unit) {
+        client.subscribe(topic.topic) { receivedTopic, message ->
+            if (receivedTopic == topic.topic) {
+                callback(String(message.payload))
+            }
         }
-    })
-    client.connect()
-    client.subscribe("/test") { topic, message -> println("subscribe /test: $topic ${String(message.payload)}") }
-    client.subscribe("/control/#") { topic, message -> println("subscribe /control: $topic ${String(message.payload)}") }
-    client.subscribe("/control/c1/#") { topic, message -> println("subscribe /control/c1: $topic ${String(message.payload)}") }
-    client.publish("test", MqttMessage("hello from server".toByteArray()))
+    }
+
+    internal fun publish(topic: Topic, message: String, qos: QOS = QOS.EXACTLY_ONCE) {
+        val mqttMessage = MqttMessage(message.toByteArray(charset = Charsets.UTF_8))
+        mqttMessage.qos = qos.value
+        client.publish(topic.topic, mqttMessage)
+    }
+
+    private fun connect() {
+        val connectionOptions = MqttConnectOptions()
+        connectionOptions.userName = Configuration.mqttServerLogin
+        connectionOptions.password = Configuration.mqttServerPassword.toCharArray()
+        client.connect(connectionOptions)
+    }
+
+    private fun disconnect() {
+        client.disconnect(2000)
+    }
 }
